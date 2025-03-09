@@ -24,18 +24,20 @@ def main():
         else:
             bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1)
         
-        # Generar la respuesta del asistente
+        # Generar la attention mask para todos los tokens de bot_input_ids
+        attention_mask = torch.ones_like(bot_input_ids)
+        
+        # Generar la respuesta del asistente usando beam search (generación determinista)
         chat_history_ids = model.generate(
             bot_input_ids,
-            max_length=1000,
+            attention_mask=attention_mask,
+            max_length=512,           # Se aumenta la longitud máxima para respuestas más largas
             pad_token_id=tokenizer.eos_token_id,
-            do_sample=True,
-    temperature=0.6,  # Reducir aleatoriedad
-    top_k=100,  # Considerar más opciones
-    top_p=0.95  # Ajustar filtro de probabilidad
+            do_sample=False,          # Generación determinista
+            num_beams=3,              # Uso de beam search para mayor coherencia
+            repetition_penalty=1.2,
+            early_stopping=True       # Detiene la generación cuando se alcanza una secuencia completa
         )
-     
-
         
         # Extraer la respuesta generada para este turno
         response = tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
@@ -43,5 +45,4 @@ def main():
         step += 1
 
 if __name__ == "__main__":
-    
     main()
